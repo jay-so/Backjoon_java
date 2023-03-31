@@ -1,84 +1,76 @@
 package boj_Gold;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.util.StringTokenizer;
-
 public class Boj_1103 {
-    static int n, m, max; // n : 세로, m : 가로
-    static boolean isCycle = false;
-    static int[][] dp;
-    static char[][] map;
-    static boolean[][] visited;
-    static int[] moveX = {0, 1, 0, -1};
-    static int[] moveY = {-1, 0, 1, 0};
+    static int N, M, sol;
+    static boolean lFlag;
+    static int[] dy = { 0, 0, -1, 1 };
+    static int[] dx = { -1, 1, 0, 0 };
+    static int[][] map, dp;
+    static boolean[][] visit;
 
-    public static void main(String args[]) throws IOException {
+    public static void main(String[] args) throws IOException {
+
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(System.out));
+
         StringTokenizer st = new StringTokenizer(br.readLine());
 
-        n = Integer.valueOf(st.nextToken());
-        m = Integer.valueOf(st.nextToken());
-        dp = new int[n][m];
-        map = new char[n][m];
-        visited = new boolean[n][m];
+        sol = 0;
+        N = Integer.parseInt(st.nextToken());
+        M = Integer.parseInt(st.nextToken());
 
-        // 입력받은 값 맵에 넣기
-        for(int i = 0; i < n; i++) {
-            String line = br.readLine();
-            map[i] = line.toCharArray();
+        map = new int[N][M]; // 지도
+        dp = new int[N][M]; // dp 저장
+        visit = new boolean[N][M]; // 방문확인 (무한 loop 확인용)
+        for (int i = 0; i < N; i++) {
+            String inputSt = br.readLine();
+            for (int j = 0; j < M; j++) {
+                // int로 맞춰서 map에 넣어줌
+                if (inputSt.charAt(j) == 'H')
+                    map[i][j] = 10; // 구멍인 경우 10으로 처리
+                else
+                    map[i][j] = inputSt.charAt(j) - 48;
+            }
         }
 
-        visited[0][0] = true;
-        dfs(0, 0, 1);
-        if(isCycle) {
-            System.out.println("-1");
-        }
-        else {
-            System.out.println(max);
-        }
+        // DFS로 깊이우선탐색 + DP로 가지치기
+        visit[0][0] = true; // (0,0) 무한loop 확인용 true 마킹
+        lFlag = false; // 무한loop 안 빠진다고 가정하고 출발
+        dfs(0, 0, 1); // (0,0)에서 출발
+
+        if (lFlag) bw.write(String.valueOf(-1));
+        else bw.write(String.valueOf(sol));
+
+        br.close();
+        bw.flush();
+        bw.close();
     }
 
-    /**
-     * DFS 알고리즘을 통해 최대 동전 게임 횟수 구하기
-     */
-    static void dfs(int x, int y, int moveCount) {
-        int moveSquareCount = Character.getNumericValue(map[y][x]);	// X만큼 이동해야할 때, 그 X를 가리킴
-        dp[y][x] = moveCount;
-        if(moveCount > max) {
-            System.out.println(moveCount + " .. " + y + " , " + x);
-            max = moveCount;
-        }
+    static void dfs(int y, int x, int cnt) {
+        // 답 최신화
+        if (cnt > sol)
+            sol = cnt;
+        dp[y][x] = cnt; // 가지치기용 dp 배열에 현재 cnt 마킹
+        for (int i = 0; i < 4; i++) {
+            int num = map[y][x];
+            int ny = dy[i] * num + y; // 현재 좌표에 숫자*방향 만큼의 숫자로 새로운 좌표
+            int nx = dx[i] * num + x;
 
-        for(int i = 0; i < moveX.length; i++) {
-            int nextX = x + (moveSquareCount * moveX[i]);
-            int nextY = y + (moveSquareCount * moveY[i]);
-
-            // 맵 밖을 벗어나면 게임 종료
-            if(nextX < 0 || nextX >= m || nextY < 0 || nextY >= n) {
-                continue;
-            }
-
-            // 구멍에 빠지면 게임 종료
-            if(map[nextY][nextX] == 'H') {
-                continue;
-            }
-
-            // 이미 다음 지점까지 가기 위해 게임한 횟수가 현재 지점에서 한번 더 한 것보다 크면 어차피 작으므로 할 이유 없다.
-            if(moveCount < dp[nextY][nextX]) {
-                continue;
-            }
-
-            // 사이클 발견한 경우 조기종료
-            if(visited[nextY][nextX]) {
-                isCycle = true;
+            if (ny < 0 || nx < 0 || ny >= N || nx >= M || map[ny][nx] == 10)
+                continue; // 지도 범위를 넘어서거나 구멍이면 continue
+            if (visit[ny][nx]) { // 방문한 지점에 돌아왔으므로 무한loop 가능
+                lFlag = true;
                 return;
             }
-
-            visited[nextY][nextX] = true;
-            dfs(nextX, nextY, moveCount + 1);
-            visited[nextY][nextX] = false;
-
+            if (dp[ny][nx] > cnt) continue;
+            visit[ny][nx] = true;
+            dfs(ny, nx, cnt+1);
+            visit[ny][nx] = false;
         }
     }
 }
